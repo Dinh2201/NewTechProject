@@ -34,6 +34,8 @@ import 'react-toastify/dist/ReactToastify.css';
 import { format } from 'date-fns';
 
 const ManageStudent = () => {
+    const student_id = localStorage.getItem('student_id');
+
     const [isReload, setIsReload] = useState(false);
 
     const headerRef = useRef(null);
@@ -124,7 +126,7 @@ const ManageStudent = () => {
         setIdItem(0);
     };
 
-    const handle_Edit = () => {
+    const handleAdd_Edit = () => {
         const username = usernameRef.current.value;
         const password = passwordRef.current.value;
         const confirmpassword = confirmpasswordRef.current.value;
@@ -135,12 +137,12 @@ const ManageStudent = () => {
         const address = addressRef.current.value;
 
         if (idItem === 0) {
-            if (!username || !password || !confirmpassword || !dateofbirth || !fullname || !phone || !email || !address) {
-                toast('vui lòng nhập đầy đủ thông tin');
+            if (!username || !password || !confirmpassword || !fullname || !dateofbirth || !phone || !email || !address) {
+                toast('Vui lòng điền đầy đủ thông tin');
                 return;
             }
             if (password != confirmpassword) {
-                toast("Mật khẩu và xác nhận mật khẩu không trùng nhau");
+                toast('Mật khẩu xác nhận không đúng');
                 return;
             }
 
@@ -168,16 +170,17 @@ const ManageStudent = () => {
                 })
                 .catch((error) => {
                     toast(error.response.data.message);
-                })
+                });
 
         }
         else {
-            if (!username || !dateofbirth || !fullname || !phone || !email || !address) {
-                toast('vui lòng nhập đầy đủ thông tin');
+
+            if (!username || !fullname || !dateofbirth || !phone || !email || !address) {
+                toast('Vui lòng điền đầy đủ thông tin');
                 return;
             }
             if (password != confirmpassword) {
-                toast("Mật khẩu và xác nhận mật khẩu không trùng nhau");
+                toast('Mật khẩu xác nhận không đúng');
                 return;
             }
 
@@ -193,22 +196,51 @@ const ManageStudent = () => {
                 Address: address,
             };
 
-            axios.put(`${API_URL}/api/students`, studentData)
+            axios.put(`${API_URL}/api/students/${idItem}`, studentData)
                 .then((response) => {
                     if (response.status === 200) {
                         toggleFormVisibility();
-                        toast('Cập nhật dữ liệu thành công');
+                        toast(`Cập nhật dữ liệu thành công`);
                         setIsReload(!isReload);
                     } else {
-                        toast('Lỗi khi cập nhật giảng viên');
+                        toast('Lỗi khi cập nhật thông tin sản phẩm');
                     }
                 })
                 .catch((error) => {
                     toast(error.response.data.message);
                 });
-
             setIdItem(0);
         }
+    }
+
+    const handleEditClick = async (id) => {
+        await axios.get(`${API_URL}/api/students/${id}`)
+            .then((response) => {
+                if (response.status === 200) {
+                    setIsShowForm(true);
+                    setIdItem(id);
+                    scrollToHeader();
+
+                    setTimeout(() => {
+                        const { YearID, DepartmentID, FullName, DateOfBirth, Email, Phone, Address } = response.data.student;
+                        usernameRef.current.value = response.data.student.UserID.UserName;
+                        fullnameRef.current.value = FullName;
+                        var date = format(new Date(DateOfBirth), 'yyyy-MM-dd');
+                        dateofbirthRef.current.defaultValue = date;
+                        emailRef.current.value = Email;
+                        phoneRef.current.value = Phone;
+                        addressRef.current.value = Address;
+                        setAcademicYear(YearID._id);
+                        setDepartment(DepartmentID._id);
+                    });
+
+                    setIdItem(id);
+                } else {
+                    toast('Lỗi khi lấy thông tin sinh viên');
+                }
+            })
+            .catch(() => {
+            });
     }
 
     const handleDeleteClick = (id) => {
@@ -238,43 +270,31 @@ const ManageStudent = () => {
         });
     }
 
-    const handleEditClick = async (id) => {
-        console.log(id)
-        await axios.get(`${API_URL}/api/students/${id}`)
-            .then((response) => {
-                if (response.status === 200) {
-                    setIsShowForm(true);
-                    setIdItem(id);
-                    scrollToHeader();
-
-                    setTimeout(() => {
-                        const { YearID, DepartmentID, FullName, DateOfBirth, Email, Phone, Address } = response.data.student;
-                        usernameRef.current.value = response.data.student.UserID.UserName;
-                        fullnameRef.current.value = FullName;
-                        var date = format(new Date(DateOfBirth), 'yyyy-MM-dd');
-                        dateofbirthRef.current.defaultValue = date;
-                        emailRef.current.value = Email;
-                        phoneRef.current.value = Phone;
-                        addressRef.current.value = Address;
-                        setAcademicYear(YearID);
-                        setDepartment(DepartmentID);
-                    });
-
-                    setIdItem(id);
-                } else {
-                    toast('Lỗi khi lấy thông tin sinh viên');
-                }
-            })
-            .catch(() => {
-            });
-    }
-
-
-
     const handleConfirmDelete = async (id) => {
         try {
             const response = await axios.delete(`${API_URL}/api/students/${id}`);
             if (response.status === 200) {
+                if (id === student_id) {
+                    localStorage.removeItem('id');
+                    localStorage.removeItem('user_id');
+                    localStorage.removeItem('username');
+                    localStorage.removeItem('fullname');
+                    localStorage.removeItem('email');
+                    localStorage.removeItem('address');
+                    localStorage.removeItem('phone');
+                    localStorage.removeItem('role');
+                    localStorage.removeItem('dateOfBirth');
+                    localStorage.removeItem('department');
+                    localStorage.removeItem('department_id');
+                    localStorage.removeItem('position');
+                    localStorage.removeItem('teacher_id');
+                    localStorage.removeItem('student_id');
+                    localStorage.removeItem('academicYear');
+                    localStorage.removeItem('academicYear_id');
+                    localStorage.removeItem('isLogin', true);
+
+                    window.location.href = '/login';
+                }
                 toast('Xóa dữ liệu thành công');
                 setIsReload(!isReload);
             } else {
@@ -400,7 +420,7 @@ const ManageStudent = () => {
                                         <CButton
                                             color='primary'
                                             variant="outline"
-                                            onClick={handle_Edit}
+                                            onClick={handleAdd_Edit}
                                         >
                                             Thực thi
                                         </CButton>
@@ -456,64 +476,72 @@ const ManageStudent = () => {
                                         </div>
                                     </>
                             }
-                            <CTable bordered borderColor="primary">
-                                <CTableHead>
-                                    <CTableRow>
-                                        <CTableHeaderCell scope="col">#</CTableHeaderCell>
-                                        <CTableHeaderCell scope="col">Họ và tên</CTableHeaderCell>
-                                        <CTableHeaderCell scope="col">Niên khóa</CTableHeaderCell>
-                                        <CTableHeaderCell scope="col">Chuyên ngành</CTableHeaderCell>
-                                        <CTableHeaderCell scope="col">Ngày sinh</CTableHeaderCell>
-                                        <CTableHeaderCell scope="col">Email</CTableHeaderCell>
-                                        <CTableHeaderCell scope="col">Số điện thoại</CTableHeaderCell>
-                                        <CTableHeaderCell scope="col">Địa chỉ</CTableHeaderCell>
-                                        <CTableHeaderCell scope="col">Action</CTableHeaderCell>
-                                    </CTableRow>
-                                </CTableHead>
-                                <CTableBody>
-                                    {getData(current, size).map((student, index) => (
-                                        <CTableRow key={student._id}>
-                                            <CTableHeaderCell scope="row">{index + 1}</CTableHeaderCell>
-                                            <CTableDataCell>{student.FullName}</CTableDataCell>
-                                            <CTableDataCell>{student.YearID.YearName}</CTableDataCell>
-                                            <CTableDataCell>{student.DepartmentID.DepartmentName}</CTableDataCell>
-                                            <CTableDataCell>{format(new Date(student.DateOfBirth), 'dd/MM/yyyy')}</CTableDataCell>
-                                            <CTableDataCell>{student.Email}</CTableDataCell>
-                                            <CTableDataCell>{student.Phone}</CTableDataCell>
-                                            <CTableDataCell>{student.Address}</CTableDataCell>
-                                            <CTableDataCell style={{ display: 'flex' }}>
-                                                <CButton
-                                                    className='mr-2'
-                                                    color='danger'
-                                                    variant="outline"
-                                                    onClick={() => handleDeleteClick(student._id)}
+                            {
+                                Students.length > 0 ?
+                                    <>
 
-                                                >
-                                                    Xóa
-                                                </CButton>
-                                                <CButton
-                                                    color='warning'
-                                                    variant="outline"
-                                                    onClick={() => handleEditClick(student._id)}
-                                                >
-                                                    Sửa
-                                                </CButton>
-                                            </CTableDataCell>
-                                        </CTableRow>
-                                    ))}
-                                </CTableBody>
-                            </CTable>
-                            <Pagination
-                                className="pagination-data"
-                                showTotal={(total, range) => `Showing ${range[0]}-${range[1]} of ${total}`}
-                                onChange={PaginationChange}
-                                total={Students.length}
-                                current={current}
-                                pageSize={size}
-                                showSizeChanger={false}
-                                itemRender={PrevNextArrow}
-                                onShowSizeChange={PerPageChange}
-                            />
+                                        <CTable bordered borderColor="primary">
+                                            <CTableHead>
+                                                <CTableRow>
+                                                    <CTableHeaderCell scope="col">#</CTableHeaderCell>
+                                                    <CTableHeaderCell scope="col">Họ và tên</CTableHeaderCell>
+                                                    <CTableHeaderCell scope="col">Niên khóa</CTableHeaderCell>
+                                                    <CTableHeaderCell scope="col">Chuyên ngành</CTableHeaderCell>
+                                                    <CTableHeaderCell scope="col">Ngày sinh</CTableHeaderCell>
+                                                    <CTableHeaderCell scope="col">Email</CTableHeaderCell>
+                                                    <CTableHeaderCell scope="col">Số điện thoại</CTableHeaderCell>
+                                                    <CTableHeaderCell scope="col">Địa chỉ</CTableHeaderCell>
+                                                    <CTableHeaderCell scope="col">Action</CTableHeaderCell>
+                                                </CTableRow>
+                                            </CTableHead>
+                                            <CTableBody>
+                                                {getData(current, size).map((student, index) => (
+                                                    <CTableRow key={student._id}>
+                                                        <CTableHeaderCell scope="row">{index + 1}</CTableHeaderCell>
+                                                        <CTableDataCell>{student.FullName}</CTableDataCell>
+                                                        <CTableDataCell>{student.YearID.YearName}</CTableDataCell>
+                                                        <CTableDataCell>{student.DepartmentID.DepartmentName}</CTableDataCell>
+                                                        <CTableDataCell>{format(new Date(student.DateOfBirth), 'dd/MM/yyyy')}</CTableDataCell>
+                                                        <CTableDataCell>{student.Email}</CTableDataCell>
+                                                        <CTableDataCell>{student.Phone}</CTableDataCell>
+                                                        <CTableDataCell>{student.Address}</CTableDataCell>
+                                                        <CTableDataCell>
+                                                            <p style={{ display: 'flex' }}>
+                                                                <CButton
+                                                                    className='mr-2'
+                                                                    color='danger'
+                                                                    variant="outline"
+                                                                    onClick={() => { handleDeleteClick(student._id) }}
+                                                                >
+                                                                    Xóa
+                                                                </CButton>
+                                                                <CButton
+                                                                    color='warning'
+                                                                    variant="outline"
+                                                                    onClick={() => handleEditClick(student._id)}
+                                                                >
+                                                                    Sửa
+                                                                </CButton>
+                                                            </p>
+                                                        </CTableDataCell>
+                                                    </CTableRow>
+                                                ))}
+                                            </CTableBody>
+                                        </CTable>
+                                        <Pagination
+                                            className="pagination-data float-left"
+                                            showTotal={(total, range) => `Showing ${range[0]}-${range[1]} of ${total}`}
+                                            onChange={PaginationChange}
+                                            total={Students.length}
+                                            current={current}
+                                            pageSize={size}
+                                            showSizeChanger={false}
+                                            itemRender={PrevNextArrow}
+                                            onShowSizeChange={PerPageChange}
+                                        />
+                                    </>
+                                    : <p>Không có dữ liệu</p>
+                            }
                         </CCardBody>
                     </CCard>
                 </CCol>

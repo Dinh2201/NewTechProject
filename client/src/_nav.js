@@ -6,8 +6,8 @@ import {
   cilAccountLogout,
 } from '@coreui/icons'
 import { CNavGroup, CNavItem, CNavTitle } from '@coreui/react'
-const isLogin = localStorage.getItem('isLogin') || true
-const role = localStorage.getItem('role') || 'admin'
+const isLogin = localStorage.getItem('isLogin')
+const role = localStorage.getItem('role')
 
 var _nav = []
 _nav.push(
@@ -18,7 +18,7 @@ _nav.push(
 )
 
 if (!isLogin) {
-  window.location.href = '/'
+  window.location.href = '/#/login'
 }
 
 if (role === 'student') {
@@ -30,8 +30,34 @@ if (role === 'student') {
     items: [
       {
         component: CNavItem,
+        name: 'Đề tài của bạn',
+        to: '/manage-theses-info',
+      },
+      {
+        component: CNavItem,
+        name: 'Quản lí yêu cầu tiến độ',
+        to: '/manage-tasks-progress-student',
+      },
+      {
+        component: CNavItem,
         name: 'Đăng kí đề tài',
         to: '/register-theses',
+      },
+    ],
+  })
+}
+
+if (role === 'teacher') {
+  _nav.push({
+    component: CNavGroup,
+    name: 'GIẢNG VIÊN',
+    to: '/base',
+    icon: <CIcon icon={cilPuzzle} customClassName="nav-icon" />,
+    items: [
+      {
+        component: CNavItem,
+        name: 'Quản lí đề tài',
+        to: '/manage-theses',
       },
       {
         component: CNavItem,
@@ -41,11 +67,10 @@ if (role === 'student') {
     ],
   })
 }
-
-if (role === 'teacher' || role === 'departmentHead') {
+if (role === 'departmentHead') {
   _nav.push({
     component: CNavGroup,
-    name: 'GIẢNG VIÊN - TBM',
+    name: 'TRƯỞNG BỘ MÔN',
     to: '/base',
     icon: <CIcon icon={cilPuzzle} customClassName="nav-icon" />,
     items: [
@@ -118,7 +143,7 @@ _nav.push(
   {
     component: CNavItem,
     name: 'Đăng xuất',
-    href: 'https://coreui.io/react/docs/templates/installation/',
+    to: '/logout',
     icon: <CIcon icon={cilAccountLogout} customClassName="nav-icon" />,
   },
 )

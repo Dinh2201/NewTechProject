@@ -10,6 +10,9 @@ const ManageDepartment = React.lazy(() => import('./views/pages/manageDepartment
 const ManageProfile = React.lazy(() => import('./views/pages/manageProfile/manage_profile'))
 const RegisterTheses = React.lazy(() => import('./views/pages/registerTheses/register_theses'))
 const ManageTasksProgress = React.lazy(() => import('./views/pages/manageTasksAndProgress/manage_tasks_and_progress'))
+const Logout = React.lazy(() => import('./views/pages/logout/logout'))
+const ManageThesesInfo = React.lazy(() => import('./views/pages/manageThesisInfo/manage_thesis_info'))
+const ManageTasksProgressStudent = React.lazy(() => import('./views/pages/manageTasksAndProgress/manage_tasks_and_progress_student'))
 
 const routes = [
   { path: '/', exact: true },
@@ -22,6 +25,10 @@ const routes = [
   { path: '/manage-profile', name: 'Thông tin tài khoản', element: ManageProfile },
   { path: '/register-theses', name: 'Đăng kí đề tài', element: RegisterTheses },
   { path: '/manage-tasks-progress', name: 'Quản lý yêu cầu và tiến độ', element: ManageTasksProgress },
+  { path: '/logout', name: 'Đăng xuất', element: Logout },
+  { path: '/manage-theses-info', name: 'Đề tài của bạn', element: ManageThesesInfo },
+  { path: '/manage-tasks-progress-student', name: 'Quản lý yêu cầu và tiến độ', element: ManageTasksProgressStudent },
+
 ]
 
 export default routes
