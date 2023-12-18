@@ -1,197 +1,107 @@
-const RequestsProgress = require('../models/RequestsProgressModel');
-const Document = require('../models/DocumentModel');
-const multer = require('multer');
-const fs = require('fs');
-const path = require('path');
+const ProjectRegistrationPeriod = require('../models/ProjectRegistrationPeriodModel');
 
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'public/file/document');
-    },
-    filename: (req, file, cb) => {
-        cb(null, file.originalname);
-    },
-});
-
-const upload = multer({ storage: storage });
-
-// Lấy tất cả yêu cầu
-exports.getRequestsProgresssByThesisId = async (req, res) => {
+// Thêm mới đợt đăng kí đề tài
+exports.addProjectRegistrationPeriod = async (req, res) => {
     try {
-        const requestsProgressList = await RequestsProgress
-            .find({ ThesisID: req.params.thesesId })
-            .exec();
+        const { YearID, Title, StartDate, EndDate } = req.body;
 
-        if (requestsProgressList.length === 0) {
-            return res.status(404).json({ message: 'Không có RequestsProgress nào tương ứng với ThesisID' });
-        }
+        const existingProjectRegistrationPeriod = await ProjectRegistrationPeriod.findOne({ Title: Title });
 
-        const result = [];
+        if (existingProjectRegistrationPeriod) {
+            res.status(401).json({ message: 'Đợt đăng kí đã tồn tại!' });
+        } else {
 
-        // Lặp qua danh sách các RequestsProgress
-        for (const requestsProgress of requestsProgressList) {
-            const documents = await Document
-                .find({ RequestID: requestsProgress._id })
-                .exec();
-
-            // Thêm thông tin về Documents vào mỗi RequestsProgress
-            const requestsProgressWithDocuments = { ...requestsProgress.toObject(), Documents: documents };
-            result.push(requestsProgressWithDocuments);
-        }
-
-        res.json(result);
-    } catch (error) {
-        res.status(500).json({ message: 'Lỗi khi lấy yêu cầu' });
-    }
-};
-
-// Thêm mới yêu cầu
-exports.addRequestsProgress = async (req, res) => {
-    try {
-        upload.array('files', 5)(req, res, async (err) => {
-            if (err) {
-                // Xử lý lỗi nếu có
-                console.error('Lỗi' + err);
-                return res.status(500).json({ message: 'Lỗi khi xử lý tệp tải lên' + err });
-            }
-
-            const { ThesisID, AdvisorID, RequestDescription } = req.body;
-
-            const newRequestsProgress = new RequestsProgress({
-                ThesisID,
-                AdvisorID,
-                RequestDescription,
-                Progress: 0,
+            const newProjectRegistrationPeriod = new ProjectRegistrationPeriod({
+                YearID,
+                Title,
+                StartDate,
+                EndDate
             });
 
-            await newRequestsProgress.save();
+            await newProjectRegistrationPeriod.save();
 
-            if (req.files && req.files.length > 0) {
-                const fileUrls = req.files.map((file) => file.filename);
-                for (const fileUrl of fileUrls) {
-                    const document = new Document({
-                        RequestID: newRequestsProgress._id,
-                        DocumentPath: `/file/document/${fileUrl}`,
-                        Type: 'request'
-                    });
-                    await document.save();
-                }
-            }
-
-            res.status(200).json({ message: 'Yêu cầu đã được thêm thành công!' });
-        })
+            res.status(200).json({ message: 'Đợt đăng kí đã được thêm thành công!' });
+        }
     } catch (error) {
-        res.status(500).json({ error: 'Lỗi khi thêm yêu cầu: ' + error.message });
+        res.status(500).json({ error: 'Lỗi khi thêm đợt đăng kí: ' + error.message });
+    }
+};
+// Lấy tất cả đợt đăng kí
+exports.getAllProjectRegistrationPeriods = async (req, res) => {
+    try {
+        // Lấy giá trị của tham số department từ request
+        const { academicyear } = req.params;
+
+        // Tạo một đối tượng chứa các điều kiện tìm kiếm
+        const conditions = {};
+        if (academicyear) {
+            if (academicyear !== 'All') {
+                conditions.YearID = academicyear;
+            }
+        }
+        const students = await ProjectRegistrationPeriod.find(conditions).populate('YearID');
+        res.json(students);
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi khi lấy danh sách đợt đăng kí' });
     }
 };
 
-// Lấy thông tin yêu cầu bằng ID
-exports.getRequestsProgressById = async (req, res) => {
+// Lấy thông tin đợt đăng kí bằng ID
+exports.getProjectRegistrationPeriodById = async (req, res) => {
     try {
-        const requestsProgress = await RequestsProgress.findById(req.params.requestsProgressId);
-
-        if (!requestsProgress) {
-            return res.status(404).json({ message: 'Yêu cầu không tồn tại' });
+        const projectRegistrationPeriod = await ProjectRegistrationPeriod.findById(req.params.projectRegistrationPeriodId).populate('YearID');
+        if (!projectRegistrationPeriod) {
+            return res.status(404).json({ message: 'Đợt đăng kí không tồn tại' });
         }
-
-        const documents = await Document
-            .find({ RequestID: requestsProgress._id, Type: req.params.type });
-
         res.json({
-            requestsProgress: requestsProgress,
-            documents: documents
+            projectRegistrationPeriod: projectRegistrationPeriod,
         });
     } catch (error) {
-        res.status(500).json({ message: 'Lỗi khi lấy thông tin yêu cầu' });
+        res.status(500).json({ message: 'Lỗi khi lấy thông tin đợt đăng kí' });
     }
 };
 
-// Cập nhật thông tin yêu cầu bằng ID
-exports.editRequestsProgress = async (req, res) => {
+// Cập nhật thông tin đợt đăng kí bằng ID
+exports.editProjectRegistrationPeriod = async (req, res) => {
     try {
-        upload.array('files', 5)(req, res, async (err) => {
-            if (err) {
-                // Xử lý lỗi nếu có
-                console.error('Lỗi' + err);
-                return res.status(500).json({ message: 'Lỗi khi xử lý tệp tải lên' + err });
-            }
-            const { ThesisID, AdvisorID, RequestDescription, Progress, Type } = req.body;
+        const { projectRegistrationPeriodId } = req.params;
+        const { YearID, Title, StartDate, EndDate } = req.body;
 
-            // Kiểm tra xem yêu cầu có tồn tại không
-            const requestsProgress = await RequestsProgress.findById(req.params.requestsProgressId);
+        // Kiểm tra xem sinh viên có tồn tại không
+        const existingProjectRegistrationPeriod = await ProjectRegistrationPeriod.findById(projectRegistrationPeriodId).populate('YearID');
 
-            if (!requestsProgress) {
-                res.status(404).json({ message: 'Yêu cầu không tồn tại!' });
-                return;
-            }
-
-            // Cập nhật thông tin yêu cầu
-            if (ThesisID && AdvisorID && RequestDescription) {
-                requestsProgress.ThesisID = ThesisID;
-                requestsProgress.AdvisorID = AdvisorID;
-                requestsProgress.RequestDescription = RequestDescription;
-            }
-            if (Progress) {
-                requestsProgress.Progress = Progress;
-            }
-
-            // Lưu các thay đổi
-            await requestsProgress.save();
-            var type = 'request';
-            if (Type) {
-                type = Type;
-            }
-            if (req.files && req.files.length > 0) {
-                const fileUrls = req.files.map((file) => file.filename);
-                for (const fileUrl of fileUrls) {
-
-                    const document = new Document({
-                        RequestID: requestsProgress._id,
-                        DocumentPath: `/file/document/${fileUrl}`,
-                        Type: type
-                    });
-                    await document.save();
-                }
-            }
-
-            res.status(200).json({ message: 'Thông tin yêu cầu đã được cập nhật thành công!' });
-        })
-    } catch (error) {
-        res.status(500).json({ error: 'Lỗi khi cập nhật thông tin yêu cầu: ' + error.message });
-    }
-};
-
-// Xóa yêu cầu bằng ID
-exports.deleteRequestsProgress = async (req, res) => {
-    try {
-        const requestsProgressId = req.params.requestsProgressId;
-        const requestsProgress = await RequestsProgress.findById(requestsProgressId);
-        if (!requestsProgress) {
-            return res.status(404).json({ message: 'Yêu cầu không tồn tại' });
+        if (!existingProjectRegistrationPeriod) {
+            res.status(404).json({ message: 'Đợt đăng kí không tồn tại!' });
+            return;
         }
-        await Document.deleteMany({ RequestID: requestsProgressId });
 
-        await RequestsProgress.findByIdAndDelete(requestsProgressId);
+        // Cập nhật thông tin sinh viên
+        existingProjectRegistrationPeriod.YearID = YearID;
+        existingProjectRegistrationPeriod.Title = Title;
+        existingProjectRegistrationPeriod.StartDate = StartDate;
+        existingProjectRegistrationPeriod.EndDate = EndDate;
 
-        res.json({ message: 'Yêu cầu đã bị xóa' });
+        // Lưu các thay đổi
+        await existingProjectRegistrationPeriod.save();
+
+        res.status(200).json({ message: 'Thông tin đợt đăng đã được cập nhật thành công!' });
     } catch (error) {
-        res.status(500).json({ message: 'Lỗi khi xóa yêu cầu' });
+        res.status(500).json({ error: 'Lỗi khi cập nhật thông tin đợt đăng kí: ' + error.message });
     }
 };
 
-exports.deleteDocument = async (req, res) => {
+// Xóa đợt đăng kí bằng ID
+exports.deleteProjectRegistrationPeriod = async (req, res) => {
     try {
-        const document = await Document.findById(req.params.documentId);
-        if (!document) {
-            return res.status(404).json({ message: 'Tài liệu không tồn tại' });
+        const projectRegistrationPeriodId = await ProjectRegistrationPeriod.findById(req.params.projectRegistrationPeriodId);
+        if (!projectRegistrationPeriodId) {
+            return res.status(404).json({ message: 'Đợt đăng kí không tồn tại' });
         }
-        const filePath = path.join(__dirname, '..', 'public', document.DocumentPath);
-        fs.unlinkSync(filePath);
 
-        await Document.findByIdAndDelete(req.params.documentId);
+        await ProjectRegistrationPeriod.findByIdAndDelete(req.params.projectRegistrationPeriodId);
 
-        res.json({ message: 'Tài liệu đã bị xóa' });
+        res.json({ message: 'Đợt đăng kí đã bị xóa' });
     } catch (error) {
-        res.status(500).json({ message: 'Lỗi khi xóa tài liệu' });
+        res.status(500).json({ message: 'Lỗi khi xóa đợt đăng kí' });
     }
 };

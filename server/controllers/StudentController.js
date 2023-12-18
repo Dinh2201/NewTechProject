@@ -1,5 +1,6 @@
 const Student = require('../models/StudentModel');
 const User = require('../models/UserModel');
+const ThesisRegistrations = require('../models/ThesisRegistrationModel');
 const bcrypt = require('bcrypt');
 
 // Thêm mới sinh viên
@@ -17,6 +18,7 @@ exports.addStudent = async (req, res) => {
             const newUser = new User({
                 UserName,
                 Password: hashedPassword,
+                Role: 'student'
             });
 
             await newUser.save();
@@ -121,26 +123,41 @@ exports.editStudent = async (req, res) => {
     }
 };
 
+// // Xóa sinh viên bằng ID
+// exports.deleteStudent = async (req, res) => {
+//     try {
+//         const studentId = req.params.studentId
+//         const student = await Student.findById(studentId);
+//         if (!student) {
+//             return res.status(404).json({ message: 'Sinh viên không tồn tại' });
+//         }
+
+//         const students = await Student.find(studentId);
+//         await Promise.all(
+//             students.map(async (student) => {
+//                 await ThesisRegistrations.deleteMany({ StudentID: student._id });
+//                 await User.findByIdAndDelete(student.UserID);
+//                 await Student.findByIdAndDelete(student._id);
+//             })
+//         );
+//         res.json({ message: 'Sinh viên đã bị xóa' });
+//     } catch (error) {
+//         res.status(500).json({ message: 'Lỗi khi xóa sinh viên' });
+//     }
+// };
+
 // Xóa sinh viên bằng ID
 exports.deleteStudent = async (req, res) => {
     try {
-        const student = await Student.findById(req.params.studentId);
+        const studentId = req.params.studentId
+        const student = await Student.findById(studentId);
         if (!student) {
             return res.status(404).json({ message: 'Sinh viên không tồn tại' });
         }
 
-        // Lấy UserID từ thông tin giảng viên
-        const userId = student.UserID;
-
-        // Xóa người dùng từ bảng User
-        const deletedUser = await User.findByIdAndDelete(userId);
-        if (!deletedUser) {
-            return res.status(500).json({ message: 'Lỗi khi xóa người dùng' });
-        }
-
-        // Xóa giảng viên từ bảng Teacher
-        await Student.findByIdAndDelete(req.params.studentId);
-
+        await ThesisRegistrations.deleteMany({ StudentID: studentId });
+        await User.findByIdAndDelete(student.UserID);
+        await Student.findByIdAndDelete(studentId);
         res.json({ message: 'Sinh viên đã bị xóa' });
     } catch (error) {
         res.status(500).json({ message: 'Lỗi khi xóa sinh viên' });
